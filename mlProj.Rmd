@@ -1,0 +1,48 @@
+---
+title: "Prediction of Exercise Quality from Personal Wearable Accelerometer Data"
+author: "John Stevenson"
+date: "January 31, 2016"
+output: html_document
+---
+
+# Abstract
+A training dataset of wearable accelerometer data is explored. Relevant variables for the prediction of the classe variable (exercise method) are identified and a prediction model is selected and trained. The performance model on the training set is presented and predictions of the classe classification for the test set are given.
+
+#Data
+The [training data](https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv) and [test data](test <- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv') are downloaded and examined. This [reference](http://groupware.les.inf.puc-rio.br/work.jsf?p1=10335) must be provided when referencing these data.
+
+```{r}
+library(caret, quietly=TRUE)
+setwd("C:/Users/jackc_000/Desktop/r_code")
+trn <-read.csv("pml-training.csv",na.strings=c('NA','#DIV/0!'))
+str(trn)
+```
+There are a large number of measurements that are NA or very sparse. They are removed. Also, the first 7 columns are either factors or descriptive rather than measurements and are also removed. To check for a possible need for scaling, a histogram of classe is examined,
+```{r}
+trainC <- trn[,!apply(trn,2,function(x) any(is.na(x)))]
+trainC2<-trainC[,c(8:ncol(trainC))]
+hist(as.numeric(trainC2$classe))
+```
+Training and cross-validation data sets are created.
+```{r}
+trainI <- createDataPartition(y=trainC2$classe,p=0.8,list=FALSE)
+trainData<- trainC2[trainI,]
+valData<-trainC[-trainI,]
+dim(trainData);dim(valData)
+```
+#Prediction Modelling and Performance
+A Random Forest Model is chosen and calibrated. The predictions of this model for the validation data are generated. The performance of the model on the validation data including the out of sample error is given through the confusion matrix.
+```{r}
+ model<-train(classe ~.,data=trainData,method='rf',trControl=trainControl(method="cv",number=4,allowParallel=TRUE,verboseIter=TRUE))
+pred<-predict(model,valData)
+cm<-confusionMatrix(pred,valData$classe)
+cm
+```
+#Predictions on the test data
+The test data is loaded and the predictions of the classe for each row are presented.
+```{r}
+setwd("C:/Users/jackc_000/Desktop/r_code")
+test<-read.csv("pml-testing.csv",na.strings=c('NA','#DIV/0!'))
+predict(model,test)
+```
+
